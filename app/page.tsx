@@ -90,8 +90,11 @@ export default function Home() {
 
         {/* STEP 2: USSD Helper */}
         <section className="bg-slate-800 border border-slate-700 rounded-2xl p-5 mb-6 shadow-lg">
-          <h2 className="text-lg font-semibold text-white mb-1">2. Check for Hidden Subscriptions</h2>
-          <p className="text-xs text-slate-400 mb-4">Tap a network to dial the USSD code.</p>
+ 	  <h2 className="text-lg font-semibold text-white mb-1">2. Check for Hidden Subscriptions</h2>
+          <p className="text-xs text-slate-400 mb-4">
+   		 Tap your network to dial the code. 
+           <span className="block mt-1 text-indigo-400 font-medium">Found an unwanted subscription? Reply "STOP" to the SMS to cancel it.</span>
+          </p>
           
           <div className="grid grid-cols-3 gap-2">
             <a 
