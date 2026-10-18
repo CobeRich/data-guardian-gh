@@ -10,6 +10,8 @@ Data Guardian GH acts as a neutral, independent advisor:
 - **Multi-Network Comparison:** Compare prices side-by-side across MTN, Telecel, and AirtelTigo.
 - **Smart Filtering:** Select your primary network(s) (Dual-SIM supported) to instantly highlight the best deals for *your* SIM cards.
 - **Hidden Sub Checker:** A one-tap USSD dialer that opens your phone's keypad with the correct cancellation codes pre-filled (e.g., `*175#` for MTN).
+- **Data Diet Calculator:** Tells you the cheapest bundle based on how much data you need and for how long.
+- **Crowdsourced Pricing:** Users can report price changes directly via WhatsApp or Email.
 
 ## 🛠 Tech Stack
 - **Framework:** [Next.js](https://nextjs.org/) (App Router)
