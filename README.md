@@ -34,3 +34,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+# Data Guardian GH 🇬🇭
+
+A mobile-first web app that helps Ghanaians save money on mobile data.
+
+## The Problem
+Ghanaians lose airtime daily to hidden premium SMS subscriptions and often overpay by buying the wrong data bundles.
+
+## The Solution
+- **Bundle Comparison:** Compare prices across MTN, Telecel, and AirtelTigo.
+- **Smart Filtering:** Select your primary network(s) to find the best deals instantly.
+- **Hidden Sub Checker:** One-tap USSD dialer to check for and cancel unwanted subscriptions.
+
+## Tech Stack
+- Next.js (React)
+- Tailwind CSS
+- Deployed on Vercel
+
+## Live Demo
+data-guardian-gh.vercel.app
