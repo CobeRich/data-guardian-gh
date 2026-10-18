@@ -1,57 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-
 # Data Guardian GH 🇬🇭
 
-A mobile-first web app that helps Ghanaians save money on mobile data.
+A mobile-first web application that helps Ghanaians save money on mobile data by comparing bundle prices and auditing hidden subscriptions.
 
-## The Problem
-Ghanaians lose airtime daily to hidden premium SMS subscriptions and often overpay by buying the wrong data bundles.
+## 🚨 The Problem
+Ghanaians lose airtime daily to hidden premium SMS subscriptions. Furthermore, because telcos constantly change data prices (and offer specific "night" or "social" bundles), users often overpay by buying the wrong bundle for their specific usage needs.
 
-## The Solution
-- **Bundle Comparison:** Compare prices across MTN, Telecel, and AirtelTigo.
-- **Smart Filtering:** Select your primary network(s) to find the best deals instantly.
-- **Hidden Sub Checker:** One-tap USSD dialer to check for and cancel unwanted subscriptions.
+## 💡 The Solution
+Data Guardian GH acts as a neutral, independent advisor:
+- **Multi-Network Comparison:** Compare prices side-by-side across MTN, Telecel, and AirtelTigo.
+- **Smart Filtering:** Select your primary network(s) (Dual-SIM supported) to instantly highlight the best deals for *your* SIM cards.
+- **Hidden Sub Checker:** A one-tap USSD dialer that opens your phone's keypad with the correct cancellation codes pre-filled (e.g., `*175#` for MTN).
 
-## Tech Stack
-- Next.js (React)
-- Tailwind CSS
-- Deployed on Vercel
+## 🛠 Tech Stack
+- **Framework:** [Next.js](https://nextjs.org/) (App Router)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Language:** TypeScript / React
+- **Deployment:** [Vercel](https://vercel.com/)
 
-## Live Demo
-data-guardian-gh.vercel.app
+## 🚀 Live Demo
+You can test the app directly on your mobile device here: 
+**[data-guardian-gh.vercel.app](https://data-guardian-gh.vercel.app)**
+
+## 💻 Running Locally
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/YourUsername/data-guardian-gh.git
+   cd data-guardian-gh
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open http://localhost:3000 in your browser.
