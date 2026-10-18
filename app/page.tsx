@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 // Hardcoded data for the MVP.
-// Later, this can be fetched from a JSON file or an API.
 const bundles = [
   { id: 1, network: 'MTN', name: 'Daily Starter', data: '500MB', price: 5.00, validity: '24 hours', type: 'Daily' },
   { id: 2, network: 'MTN', name: 'Weekly Heavy', data: '10GB', price: 25.00, validity: '7 days', type: 'Weekly' },
@@ -20,14 +19,39 @@ const networks = ['All', 'MTN', 'Telecel', 'AirtelTigo'];
 const categories = ['All', 'Daily', 'Weekly', 'Monthly', 'Night', 'Social'];
 
 export default function Home() {
+  const [myNetworks, setMyNetworks] = useState<string[]>([]);
   const [selectedNetwork, setSelectedNetwork] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
+  const toggleNetwork = (network: string) => {
+    const isAdding = !myNetworks.includes(network);
+    
+    const newNetworks = isAdding 
+      ? [...myNetworks, network] 
+      : myNetworks.filter(n => n !== network);
+      
+    setMyNetworks(newNetworks);
+
+    // Smart Filter Logic
+    if (newNetworks.length === 0) {
+      setSelectedNetwork('All');
+    } else if (newNetworks.length === 1) {
+      setSelectedNetwork(newNetworks[0]);
+    } else {
+      setSelectedNetwork('All');
+    }
+  };
+
   // Filter logic
   const filteredBundles = bundles.filter(b => {
-    const matchNetwork = selectedNetwork === 'All' || b.network === selectedNetwork;
+    // 1. Check against the specific filter pills (This drives the final display)
+    const matchSelectedNetwork = selectedNetwork === 'All' || b.network === selectedNetwork;
+    
+    // 2. Check against the usage category
     const matchCategory = selectedCategory === 'All' || b.type === selectedCategory;
-    return matchNetwork && matchCategory;
+
+    // Note: We removed the "hard lock" to myNetworks so users can still compare other networks if they click "All" below
+    return matchSelectedNetwork && matchCategory;
   });
 
   return (
@@ -35,103 +59,180 @@ export default function Home() {
       <div className="max-w-md mx-auto">
         
         {/* Header */}
-        <header className="mb-8 text-center">
+        <header className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-white tracking-tight">Data Guardian GH 🇬🇭</h1>
           <p className="text-slate-400 mt-2 text-sm">Compare prices. Save money. No hidden fees.</p>
         </header>
 
-        {/* USSD Helper */}
-        <section className="bg-slate-800 border border-slate-700 rounded-2xl p-5 mb-8 shadow-lg">
-          <h2 className="text-lg font-semibold text-white mb-1">Check for Hidden Subscriptions</h2>
-          <p className="text-xs text-slate-400 mb-4">Tap your network to dial the USSD code directly.</p>
+        {/* STEP 1: Primary Network Selector */}
+        <section className="bg-slate-800 border border-slate-700 rounded-2xl p-5 mb-6 shadow-lg">
+          <label className="text-sm font-medium text-white mb-1 block">
+            1. Which networks do you use?
+          </label>
+          <p className="text-xs text-slate-400 mb-3">Select all that apply (Dual-SIM supported).</p>
+          
+          <div className="flex gap-2">
+            {['MTN', 'Telecel', 'AirtelTigo'].map(net => (
+              <button
+                key={net}
+                onClick={() => toggleNetwork(net)}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-colors ${
+                  myNetworks.includes(net)
+                    ? 'bg-indigo-500 text-white shadow-md' 
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                {myNetworks.includes(net) ? '✓ ' : ''}{net}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* STEP 2: USSD Helper */}
+        <section className="bg-slate-800 border border-slate-700 rounded-2xl p-5 mb-6 shadow-lg">
+          <h2 className="text-lg font-semibold text-white mb-1">2. Check for Hidden Subscriptions</h2>
+          <p className="text-xs text-slate-400 mb-4">Tap a network to dial the USSD code.</p>
+          
           <div className="grid grid-cols-3 gap-2">
-            <a href="tel:*175%23" className="bg-yellow-500 hover:bg-yellow-400 text-yellow-950 font-bold py-3 rounded-xl text-center text-sm transition-colors shadow-sm">
+            <a 
+              href="tel:*175%23" 
+              className={`py-3 rounded-xl text-center text-sm transition-all shadow-sm ${
+                myNetworks.includes('MTN')
+                  ? 'bg-yellow-500 hover:bg-yellow-400 text-yellow-950 font-bold' 
+                  : 'bg-slate-700/50 text-slate-500 font-medium cursor-not-allowed opacity-50'
+              }`}
+            >
               MTN<br/><span className="text-xs font-normal">*175#</span>
             </a>
-            <a href="tel:*463%23" className="bg-red-500 hover:bg-red-400 text-white font-bold py-3 rounded-xl text-center text-sm transition-colors shadow-sm">
+            <a 
+              href="tel:*463%23" 
+              className={`py-3 rounded-xl text-center text-sm transition-all shadow-sm ${
+                myNetworks.includes('Telecel')
+                  ? 'bg-red-500 hover:bg-red-400 text-white font-bold' 
+                  : 'bg-slate-700/50 text-slate-500 font-medium cursor-not-allowed opacity-50'
+              }`}
+            >
               Telecel<br/><span className="text-xs font-normal">*463#</span>
             </a>
-            <a href="tel:*100%23" className="bg-blue-500 hover:bg-blue-400 text-white font-bold py-3 rounded-xl text-center text-sm transition-colors shadow-sm">
+            <a 
+              href="tel:*100%23" 
+              className={`py-3 rounded-xl text-center text-sm transition-all shadow-sm ${
+                myNetworks.includes('AirtelTigo')
+                  ? 'bg-blue-500 hover:bg-blue-400 text-white font-bold' 
+                  : 'bg-slate-700/50 text-slate-500 font-medium cursor-not-allowed opacity-50'
+              }`}
+            >
               AirtelTigo<br/><span className="text-xs font-normal">*100#</span>
             </a>
           </div>
         </section>
 
-        {/* Filters */}
-        <section className="mb-8 space-y-4">
-          {/* Network Filter */}
-          <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Network</label>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {networks.map(net => (
-                <button
-                  key={net}
-                  onClick={() => setSelectedNetwork(net)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                    selectedNetwork === net 
-                      ? 'bg-indigo-500 text-white border-indigo-500' 
-                      : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
-                  }`}
-                >
-                  {net}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Category Filter */}
-          <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Usage Type</label>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                    selectedCategory === cat 
-                      ? 'bg-slate-200 text-slate-900' 
-                      : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Bundle List */}
-        <section>
-          <div className="flex justify-between items-end mb-4">
-            <h2 className="text-xl font-semibold text-white">Available Bundles</h2>
-            <span className="text-xs text-slate-500">{filteredBundles.length} results</span>
-          </div>
-          
-          <div className="space-y-3">
-            {filteredBundles.length === 0 ? (
-              <div className="text-center py-10 bg-slate-800/50 rounded-2xl border border-slate-700 border-dashed">
-                <p className="text-slate-400">No bundles match your filters.</p>
-              </div>
-            ) : (
-              filteredBundles.map((b) => (
-                <div key={b.id} className="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex justify-between items-center shadow-sm hover:border-slate-500 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-indigo-400 uppercase tracking-wide">{b.network}</span>
-                      {b.type === 'Night' && <span className="bg-purple-900/50 text-purple-300 text-[10px] px-2 py-0.5 rounded-full font-medium">🌙 Night</span>}
-                      {b.type === 'Social' && <span className="bg-pink-900/50 text-pink-300 text-[10px] px-2 py-0.5 rounded-full font-medium">📱 Social</span>}
-                    </div>
-                    <h3 className="font-semibold text-slate-100">{b.name}</h3>
-                    <p className="text-sm text-slate-400 mt-0.5">{b.data} · {b.validity}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-white">GH₵ {b.price.toFixed(2)}</p>
-                  </div>
+        {/* STEP 3: Filters & List */}
+        {myNetworks.length > 0 ? (
+          <>
+            <section className="mb-6 space-y-4">
+              <h2 className="text-lg font-semibold text-white mb-1">3. Find the Best Bundle</h2>
+              
+              {/* Network Filter Pills */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Filter by specific network</label>
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {networks.map(net => (
+                    <button
+                      key={net}
+                      onClick={() => setSelectedNetwork(net)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                        selectedNetwork === net 
+                          ? 'bg-indigo-500 text-white border-indigo-500' 
+                          : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+                      }`}
+                    >
+                      {net}
+                    </button>
+                  ))}
                 </div>
-              ))
-            )}
+              </div>
+
+              {/* Category Filter Pills */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Usage Type</label>
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                        selectedCategory === cat 
+                          ? 'bg-slate-200 text-slate-900' 
+                          : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Bundle List */}
+            <section>
+              <div className="flex justify-between items-end mb-4">
+                <h2 className="text-xl font-semibold text-white">Available Bundles</h2>
+                <span className="text-xs text-slate-500">{filteredBundles.length} results</span>
+              </div>
+              
+              <div className="space-y-3">
+                {filteredBundles.length === 0 ? (
+                  <div className="text-center py-10 bg-slate-800/50 rounded-2xl border border-slate-700 border-dashed">
+                    <p className="text-slate-400">No bundles match your filters.</p>
+                  </div>
+                ) : (
+                  filteredBundles.map((b) => {
+                    const isPrimaryNetwork = myNetworks.includes(b.network);
+
+                    return (
+                      <div 
+                        key={b.id} 
+                        className={`border p-4 rounded-2xl flex justify-between items-center shadow-sm transition-all relative ${
+                          isPrimaryNetwork 
+                            ? 'bg-slate-800 border-indigo-500/60 shadow-indigo-900/20' 
+                            : 'bg-slate-800/40 border-slate-700 opacity-60 hover:opacity-100 hover:border-slate-500' 
+                        }`}
+                      >
+                        {isPrimaryNetwork && (
+                          <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                            Your Network
+                          </span>
+                        )}
+                        
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-xs font-bold uppercase tracking-wide ${isPrimaryNetwork ? 'text-indigo-400' : 'text-slate-400'}`}>
+                              {b.network}
+                            </span>
+                            {b.type === 'Night' && <span className="bg-purple-900/50 text-purple-300 text-[10px] px-2 py-0.5 rounded-full font-medium">🌙 Night</span>}
+                            {b.type === 'Social' && <span className="bg-pink-900/50 text-pink-300 text-[10px] px-2 py-0.5 rounded-full font-medium">📱 Social</span>}
+                          </div>
+                          <h3 className="font-semibold text-slate-100">{b.name}</h3>
+                          <p className="text-sm text-slate-400 mt-0.5">{b.data} · {b.validity}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold text-white">GH₵ {b.price.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+          </>
+        ) : (
+          /* Empty state when no network is selected at the top */
+          <div className="text-center py-12 px-6 bg-slate-800/30 rounded-2xl border border-slate-800 border-dashed">
+            <p className="text-slate-400 font-medium">👆 Select your network(s) above</p>
+            <p className="text-sm text-slate-500 mt-2">Select at least one network to see the best data bundles.</p>
           </div>
-        </section>
+        )}
 
         {/* Footer */}
         <footer className="mt-12 text-center text-xs text-slate-600 space-y-1 pb-8">
