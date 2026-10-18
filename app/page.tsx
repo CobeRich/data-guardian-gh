@@ -1,24 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 
-// Hardcoded data for the MVP.
-const bundles = [
-  { id: 1, network: 'MTN', name: 'Daily Starter', data: '500MB', price: 5.00, validity: '24 hours', type: 'Daily', dataGb: 0.5, days: 1 },
-  { id: 2, network: 'MTN', name: 'Weekly Heavy', data: '10GB', price: 25.00, validity: '7 days', type: 'Weekly', dataGb: 10, days: 7 },
-  { id: 3, network: 'MTN', name: 'Monthly Pro', data: '30GB', price: 60.00, validity: '30 days', type: 'Monthly', dataGb: 30, days: 30 },
-  { id: 4, network: 'Telecel', name: 'Night King', data: '6GB', price: 5.00, validity: 'Midnight - 5 AM', type: 'Night', dataGb: 6, days: 1 },
-  { id: 5, network: 'Telecel', name: 'WhatsApp Pass', data: '1GB', price: 4.50, validity: '7 days', type: 'Social', dataGb: 1, days: 7 },
-  { id: 6, network: 'Telecel', name: 'Mega Bundle', data: '20GB', price: 50.00, validity: '30 days', type: 'Monthly', dataGb: 20, days: 30 },
-  { id: 7, network: 'AirtelTigo', name: 'Weekly Standard', data: '5GB', price: 15.00, validity: '7 days', type: 'Weekly', dataGb: 5, days: 7 },
-  { id: 8, network: 'AirtelTigo', name: 'Monthly Max', data: '40GB', price: 80.00, validity: '30 days', type: 'Monthly', dataGb: 40, days: 30 },
-  { id: 9, network: 'AirtelTigo', name: 'Social Pack', data: '2GB', price: 8.00, validity: '7 days', type: 'Social', dataGb: 2, days: 7 },
-];
+// Define the Bundle type based on our Supabase table
+type Bundle = {
+  id: number;
+  network: string;
+  name: string;
+  price: number;
+  dataGb: number;
+  days: number;
+  type: string;
+  data: string; // Display string (e.g., "10GB")
+  validity: string; // Display string (e.g., "7 days")
+};
 
 const networks = ['All', 'MTN', 'Telecel', 'AirtelTigo'];
 const categories = ['All', 'Daily', 'Weekly', 'Monthly', 'Night', 'Social'];
 
 export default function Home() {
+  // Supabase Data State
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Filter & UI State
   const [myNetworks, setMyNetworks] = useState<string[]>([]);
   const [selectedNetwork, setSelectedNetwork] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -26,7 +32,7 @@ export default function Home() {
   // Data Diet Calculator State
   const [calcGb, setCalcGb] = useState('');
   const [calcDays, setCalcDays] = useState('');
-  const [recommendation, setRecommendation] = useState<typeof bundles[0] | null | undefined>(undefined);
+  const [recommendation, setRecommendation] = useState<Bundle | null | undefined>(undefined);
 
   // Report Form State
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -34,6 +40,38 @@ export default function Home() {
   const [reportName, setReportName] = useState('');
   const [reportPrice, setReportPrice] = useState('');
   const [reportData, setReportData] = useState('');
+
+  // --- FETCH DATA FROM SUPABASE ---
+  useEffect(() => {
+    // Create the Supabase client using environment variables directly
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+    );
+
+    async function fetchBundles() {
+      const { data, error } = await supabase.from("bundles").select("*");
+      
+      if (error) {
+        console.error("Error fetching bundles:", error);
+      } else if (data) {
+        // Map the database fields to match our UI needs
+        const formattedData = data.map((item) => ({
+          ...item,
+          price: Number(item.price), 
+          dataGb: Number(item.dataGb), 
+          days: Number(item.days),
+          // Generate display strings for the UI
+          data: item.dataGb >= 1 ? `${item.dataGb}GB` : `${item.dataGb * 1000}MB`,
+          validity: item.days === 1 ? '24 hours' : `${item.days} days`,
+        }));
+        setBundles(formattedData);
+      }
+      setLoading(false);
+    }
+
+    fetchBundles();
+  }, []);
 
   const toggleNetwork = (network: string) => {
     const isAdding = !myNetworks.includes(network);
@@ -59,8 +97,7 @@ export default function Home() {
   };
 
   const handleWhatsAppSubmit = () => {
-    // ⚠️ REPLACE WITH YOUR WHATSAPP NUMBER (Country code + number, no + or spaces)
-    const myPhoneNumber = "233243953395"; 
+    const myPhoneNumber = "233000000000"; // ⚠️ REPLACE WITH YOUR NUMBER
     const message = `*New Bundle Report* 🚨\n\n*Network:* ${reportNetwork}\n*Bundle Name:* ${reportName}\n*Price:* GH₵ ${reportPrice}\n*Data Amount:* ${reportData}\n\n_Sent from Data Guardian GH_`;
     window.open(`https://wa.me/${myPhoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
     setIsReportOpen(false);
@@ -68,11 +105,9 @@ export default function Home() {
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // ⚠️ REPLACE WITH YOUR EMAIL
-    const myEmail = "achiawkoby@gmail.com"; 
+    const myEmail = "your-email@example.com"; // ⚠️ REPLACE WITH YOUR EMAIL
     const subject = `Bundle Report: ${reportNetwork} - ${reportName}`;
     const body = `Network: ${reportNetwork}\nBundle Name: ${reportName}\nPrice: GH₵ ${reportPrice}\nData Amount: ${reportData}\n\nSent from Data Guardian GH`;
-    
     window.location.href = `mailto:${myEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     setIsReportOpen(false);
   };
@@ -88,6 +123,14 @@ export default function Home() {
     const matchCategory = selectedCategory === 'All' || b.type === selectedCategory;
     return matchSelectedNetwork && matchCategory;
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+        <p className="animate-pulse">Loading bundles...</p>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8 font-sans">
