@@ -23,18 +23,22 @@ export default function Home() {
   const [selectedNetwork, setSelectedNetwork] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  // --- DATA DIET CALCULATOR STATE ---
+  // Data Diet Calculator State
   const [calcGb, setCalcGb] = useState('');
   const [calcDays, setCalcDays] = useState('');
   const [recommendation, setRecommendation] = useState<typeof bundles[0] | null | undefined>(undefined);
 
+  // Report Form State
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [reportNetwork, setReportNetwork] = useState('MTN');
+  const [reportName, setReportName] = useState('');
+  const [reportPrice, setReportPrice] = useState('');
+  const [reportData, setReportData] = useState('');
+
   const toggleNetwork = (network: string) => {
     const isAdding = !myNetworks.includes(network);
-    const newNetworks = isAdding 
-      ? [...myNetworks, network] 
-      : myNetworks.filter(n => n !== network);
+    const newNetworks = isAdding ? [...myNetworks, network] : myNetworks.filter(n => n !== network);
     setMyNetworks(newNetworks);
-
     if (newNetworks.length === 0) setSelectedNetwork('All');
     else if (newNetworks.length === 1) setSelectedNetwork(newNetworks[0]);
     else setSelectedNetwork('All');
@@ -43,27 +47,36 @@ export default function Home() {
   const handleCalculate = () => {
     const reqGb = parseFloat(calcGb);
     const reqDays = parseInt(calcDays);
-
     if (isNaN(reqGb) || isNaN(reqDays)) {
       alert("Please enter valid numbers for data and days.");
       return;
     }
-
-    // Logic: Find bundles that meet or exceed the requirement, 
-    // sorted by cheapest price.
     const validOptions = bundles.filter(b => 
-      b.dataGb >= reqGb && 
-      b.days >= reqDays &&
-      (myNetworks.length === 0 || myNetworks.includes(b.network)) // Only from their networks
+      b.dataGb >= reqGb && b.days >= reqDays && (myNetworks.length === 0 || myNetworks.includes(b.network))
     );
-
     validOptions.sort((a, b) => a.price - b.price);
+    setRecommendation(validOptions.length > 0 ? validOptions[0] : null);
+  };
 
-    if (validOptions.length > 0) {
-      setRecommendation(validOptions[0]); // The cheapest valid option
-    } else {
-      setRecommendation(null); // No exact match, maybe suggest buying two?
-    }
+  const handleReportSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // ⚠️ REPLACE THIS WITH YOUR WHATSAPP NUMBER (Country code + number, no + or spaces)
+    const myPhoneNumber = "4915217004753"; 
+
+    const message = `*New Bundle Report* 🚨\n\n*Network:* ${reportNetwork}\n*Bundle Name:* ${reportName}\n*Price:* GH₵ ${reportPrice}\n*Data Amount:* ${reportData}\n\n_Sent from Data Guardian GH_`;
+    
+    // Encode the message for URL
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Open WhatsApp
+    window.open(`https://wa.me/${myPhoneNumber}?text=${encodedMessage}`, '_blank');
+    
+    // Reset and close
+    setIsReportOpen(false);
+    setReportName('');
+    setReportPrice('');
+    setReportData('');
   };
 
   const filteredBundles = bundles.filter(b => {
@@ -87,13 +100,9 @@ export default function Home() {
           <p className="text-xs text-slate-400 mb-3">Select all that apply (Dual-SIM supported).</p>
           <div className="flex gap-2">
             {['MTN', 'Telecel', 'AirtelTigo'].map(net => (
-              <button
-                key={net}
-                onClick={() => toggleNetwork(net)}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-colors ${
-                  myNetworks.includes(net) ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
+              <button key={net} onClick={() => toggleNetwork(net)} className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-colors ${
+                myNetworks.includes(net) ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}>
                 {myNetworks.includes(net) ? '✓ ' : ''}{net}
               </button>
             ))}
@@ -120,7 +129,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* STEP 3: Find the Best Bundle */}
+        {/* STEP 3: Calculator & List */}
         {myNetworks.length > 0 ? (
           <>
             {/* DATA DIET CALCULATOR */}
@@ -143,7 +152,6 @@ export default function Home() {
                 Calculate Best Deal
               </button>
 
-              {/* RECOMMENDATION RESULT */}
               {recommendation !== undefined && (
                 <div className="mt-4 pt-4 border-t border-indigo-500/30">
                   {recommendation ? (
@@ -166,7 +174,7 @@ export default function Home() {
               )}
             </section>
 
-            {/* MANUAL FILTERS & FULL LIST */}
+            {/* MANUAL FILTERS */}
             <section className="mb-6 space-y-4">
               <h2 className="text-lg font-semibold text-white mb-1">Or browse all bundles</h2>
               <div>
@@ -235,11 +243,57 @@ export default function Home() {
           </div>
         )}
 
-        <footer className="mt-12 text-center text-xs text-slate-600 space-y-1 pb-8">
+        {/* CROWDSOURCE LINK */}
+        <div className="mt-10 text-center">
+          <button onClick={() => setIsReportOpen(true)} className="text-xs font-medium text-indigo-400 hover:text-indigo-300 underline underline-offset-4">
+            Missing a bundle or price changed? Report it here
+          </button>
+        </div>
+
+        <footer className="mt-8 text-center text-xs text-slate-600 space-y-1 pb-8">
           <p>Prices are based on current market rates and may change.</p>
           <p>We do not sell data. We just help you keep your money.</p>
         </footer>
       </div>
+
+      {/* REPORT A PRICE MODAL */}
+      {isReportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-700 w-full max-w-sm rounded-2xl p-6 shadow-2xl relative">
+            <button onClick={() => setIsReportOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+            <h2 className="text-xl font-bold text-white mb-1">Report a Price</h2>
+            <p className="text-xs text-slate-400 mb-5">Help keep Data Guardian accurate for everyone.</p>
+            
+            <form onSubmit={handleReportSubmit} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase">Network</label>
+                <select value={reportNetwork} onChange={(e) => setReportNetwork(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 text-sm focus:outline-none focus:border-indigo-500">
+                  <option value="MTN">MTN</option>
+                  <option value="Telecel">Telecel</option>
+                  <option value="AirtelTigo">AirtelTigo</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase">Bundle Name</label>
+                <input required type="text" placeholder="e.g. Mega Bundle" value={reportName} onChange={(e) => setReportName(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 text-sm focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase">Price (GH₵)</label>
+                  <input required type="number" step="0.01" placeholder="e.g. 25.00" value={reportPrice} onChange={(e) => setReportPrice(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 text-sm focus:outline-none focus:border-indigo-500" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase">Data Amount</label>
+                  <input required type="text" placeholder="e.g. 10GB" value={reportData} onChange={(e) => setReportData(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 text-sm focus:outline-none focus:border-indigo-500" />
+                </div>
+              </div>
+              <button type="submit" className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg text-sm transition-colors mt-2">
+                Send via WhatsApp
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
