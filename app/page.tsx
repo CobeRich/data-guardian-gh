@@ -12,6 +12,7 @@ type Bundle = {
   dataGb: number;
   days: number;
   type: string;
+  ussd_code: string; // NEW: Added USSD code
   data: string;
   validity: string;
 };
@@ -89,7 +90,7 @@ export default function Home() {
 
     const userNetworks = myNetworks.length > 0 ? myNetworks : ['MTN', 'Telecel', 'AirtelTigo'];
 
-    // 1. Try to find a PERFECT match (meets both data and days)
+    // 1. Try to find a PERFECT match
     const perfectOptions = bundles.filter(b => 
       b.dataGb >= reqGb && b.days >= reqDays && userNetworks.includes(b.network)
     );
@@ -103,13 +104,12 @@ export default function Home() {
       return;
     }
 
-    // 2. If no perfect match, find the CLOSEST match (highest data, even if days are shorter)
+    // 2. Find the CLOSEST match
     const closestOptions = bundles.filter(b => 
       b.dataGb >= reqGb && userNetworks.includes(b.network)
     );
 
     if (closestOptions.length > 0) {
-      // Find the one with the closest data amount (least extra data), then sort by price
       closestOptions.sort((a, b) => a.dataGb - b.dataGb);
       const best = closestOptions[0];
       setRecommendation(best);
@@ -118,7 +118,7 @@ export default function Home() {
       return;
     }
 
-    // 3. If they need more data than ANY bundle, give them a combination advice
+    // 3. Combination Advice
     const maxDataBundle = [...bundles].filter(b => userNetworks.includes(b.network)).sort((a, b) => b.dataGb - a.dataGb)[0];
     
     if (maxDataBundle) {
@@ -241,7 +241,6 @@ export default function Home() {
               {recommendation !== undefined && (
                 <div className="mt-4 pt-4 border-t border-indigo-500/30">
                   {recommendation ? (
-                    // SUCCESS: WE FOUND A BUNDLE (Perfect or Closest)
                     <div className="bg-indigo-500/20 border border-indigo-500/50 rounded-xl p-4">
                       <p className="text-xs text-indigo-300 font-bold uppercase mb-1">
                         {isPerfectMatch ? '🏆 Perfect Deal Found' : '💡 Closest Match Found'}
@@ -253,14 +252,21 @@ export default function Home() {
                         </div>
                         <p className="text-xl font-bold text-white">GH₵ {recommendation.price.toFixed(2)}</p>
                       </div>
-                      <div className="bg-indigo-950/50 p-3 rounded-lg border border-indigo-500/30">
+                      <div className="bg-indigo-950/50 p-3 rounded-lg border border-indigo-500/30 mb-3">
                         <p className="text-xs text-indigo-200 leading-relaxed">
                           <strong className="text-white">Why this?</strong> {adviceText}
                         </p>
                       </div>
+                      
+                      {/* BUY BUTTON IN CALCULATOR */}
+                      <a 
+                        href={`tel:${encodeURIComponent(recommendation.ussd_code || '*138#')}`}
+                        className="w-full bg-green-600 hover:bg-green-500 text-white text-sm font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        Get Bundle Now
+                      </a>
                     </div>
                   ) : (
-                    // NO SINGLE BUNDLE FITS (Show combination advice)
                     <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4">
                       <p className="text-xs text-yellow-400 font-bold uppercase mb-2">💡 Bundle Combination Needed</p>
                       <p className="text-sm text-yellow-100/90 leading-relaxed">
@@ -311,11 +317,12 @@ export default function Home() {
                   filteredBundles.map((b) => {
                     const isPrimaryNetwork = myNetworks.includes(b.network);
                     return (
-                      <div key={b.id} className={`border p-4 rounded-2xl flex justify-between items-center shadow-sm transition-all relative ${
+                      <div key={b.id} className={`border p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm transition-all relative ${
                           isPrimaryNetwork ? 'bg-slate-800 border-indigo-500/60 shadow-indigo-900/20' : 'bg-slate-800/40 border-slate-700 opacity-60 hover:opacity-100 hover:border-slate-500' 
                         }`}>
-                        {isPrimaryNetwork && <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">Your Network</span>}
-                        <div>
+                        {isPrimaryNetwork && <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">Your Network</span>}
+                        
+                        <div className="mb-3 sm:mb-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`text-xs font-bold uppercase tracking-wide ${isPrimaryNetwork ? 'text-indigo-400' : 'text-slate-400'}`}>{b.network}</span>
                             
@@ -330,8 +337,17 @@ export default function Home() {
                           <h3 className="font-semibold text-slate-100">{b.name}</h3>
                           <p className="text-sm text-slate-400 mt-0.5">{b.data} · {b.validity}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-white">GH₵ {b.price.toFixed(2)}</p>
+
+                        <div className="text-right flex flex-row sm:flex-col justify-between w-full sm:w-auto items-center sm:items-end border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-700">
+                          <p className="text-xl font-bold text-white mb-2 sm:mb-2">GH₵ {b.price.toFixed(2)}</p>
+                          
+                          {/* BUY NOW BUTTON */}
+                          <a 
+                            href={`tel:${encodeURIComponent(b.ussd_code || (b.network === 'MTN' ? '*138#' : b.network === 'Telecel' ? '*700#' : '*111#'))}`}
+                            className="bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-green-500 transition-colors flex items-center justify-center gap-1"
+                          >
+                            Get Bundle
+                          </a>
                         </div>
                       </div>
                     );

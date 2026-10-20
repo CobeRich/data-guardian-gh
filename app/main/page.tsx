@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-// Define the Bundle type
 type Bundle = {
   id: number;
   network: string;
@@ -12,6 +11,7 @@ type Bundle = {
   dataGb: number;
   days: number;
   type: string;
+  ussd_code: string; // NEW
 };
 
 export default function AdminPage() {
@@ -20,16 +20,17 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [bundles, setBundles] = useState<Bundle[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0); // Used to trigger re-fetching
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Form State
-  const [editingId, setEditingId] = useState<number | null>(null); // If null, we are creating. If number, we are editing.
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [network, setNetwork] = useState("MTN");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [dataGb, setDataGb] = useState("");
   const [days, setDays] = useState("");
   const [type, setType] = useState("Daily");
+  const [ussdCode, setUssdCode] = useState("*138#"); // NEW STATE
   
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -39,33 +40,21 @@ export default function AdminPage() {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
   );
 
-  // Fetch bundles when authenticated or when refreshKey changes
   useEffect(() => {
     if (!isAuthenticated) return;
-
     async function fetchBundles() {
-      const { data, error } = await supabase
-        .from("bundles")
-        .select("*")
-        .order("network", { ascending: true });
-      
-      if (!error && data) {
-        setBundles(data);
-      }
+      const { data, error } = await supabase.from("bundles").select("*").order("network", { ascending: true });
+      if (!error && data) setBundles(data);
     }
     fetchBundles();
   }, [isAuthenticated, refreshKey]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-    } else {
-      alert("Incorrect password");
-    }
+    if (password === ADMIN_PASSWORD) setIsAuthenticated(true);
+    else alert("Incorrect password");
   };
 
-  // Reset form to default state
   const resetForm = () => {
     setEditingId(null);
     setNetwork("MTN");
@@ -74,11 +63,11 @@ export default function AdminPage() {
     setDataGb("");
     setDays("");
     setType("Daily");
+    setUssdCode("*138#"); // Reset USSD
     setStatus("idle");
     setMessage("");
   };
 
-  // Populate form when "Edit" is clicked
   const handleEditClick = (bundle: Bundle) => {
     setEditingId(bundle.id);
     setNetwork(bundle.network);
@@ -87,27 +76,22 @@ export default function AdminPage() {
     setDataGb(bundle.dataGb.toString());
     setDays(bundle.days.toString());
     setType(bundle.type);
+    setUssdCode(bundle.ussd_code || "*138#"); // Load USSD
     setStatus("idle");
     setMessage("");
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Handle Delete
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this bundle?")) return;
-
     const { error } = await supabase.from("bundles").delete().eq("id", id);
-
-    if (error) {
-      alert(`Error deleting: ${error.message}`);
-    } else {
-      setRefreshKey(prev => prev + 1); // Trigger re-fetch
-      if (editingId === id) resetForm(); // Clear form if we deleted the one we were editing
+    if (error) alert(`Error deleting: ${error.message}`);
+    else {
+      setRefreshKey(prev => prev + 1);
+      if (editingId === id) resetForm();
     }
   };
 
-  // Handle Create OR Update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("loading");
@@ -120,16 +104,14 @@ export default function AdminPage() {
       dataGb: parseFloat(dataGb),
       days: parseInt(days),
       type,
+      ussd_code: ussdCode, // Include in payload
     };
 
     let error;
-    
     if (editingId) {
-      // UPDATE existing
       const result = await supabase.from("bundles").update(payload).eq("id", editingId);
       error = result.error;
     } else {
-      // INSERT new
       const result = await supabase.from("bundles").insert([payload]);
       error = result.error;
     }
@@ -140,13 +122,9 @@ export default function AdminPage() {
     } else {
       setStatus("success");
       setMessage(editingId ? "Bundle updated successfully!" : "Bundle added successfully!");
-      setRefreshKey(prev => prev + 1); // Trigger re-fetch for the list below
-      
-      // If we were editing, reset the form back to "Create" mode after a short delay
-      if (editingId) {
-        setTimeout(() => resetForm(), 1500);
-      } else {
-        // If creating, just clear the text fields
+      setRefreshKey(prev => prev + 1);
+      if (editingId) setTimeout(() => resetForm(), 1500);
+      else {
         setName("");
         setPrice("");
         setDataGb("");
@@ -155,141 +133,147 @@ export default function AdminPage() {
     }
   };
 
-  // --- LOGIN SCREEN ---
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl w-full max-w-sm">
-          <h1 className="text-2xl font-bold text-white mb-6 text-center">Admin Access</h1>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mt-1 focus:outline-none focus:border-indigo-500" placeholder="Enter admin password" />
-            </div>
-            <button type="submit" className="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 rounded-lg transition-colors">
-              Unlock
-            </button>
-          </form>
-        </div>
-      </main>
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+        <form onSubmit={handleLogin} className="w-full max-w-sm rounded-lg bg-white p-6 shadow-md">
+          <h1 className="mb-4 text-xl font-bold text-gray-800">Admin Login</h1>
+          <input
+            type="password"
+            placeholder="Enter Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="mb-4 w-full rounded border border-gray-300 p-2 text-black"
+          />
+          <button type="submit" className="w-full rounded bg-blue-600 p-2 text-white hover:bg-blue-700">
+            Login
+          </button>
+        </form>
+      </div>
     );
   }
 
-  // --- ADMIN DASHBOARD ---
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8 font-sans flex justify-center items-start pt-12">
-      <div className="w-full max-w-4xl grid md:grid-cols-2 gap-8">
-        
-        {/* LEFT COLUMN: FORM */}
-        <div>
-          <header className="mb-6 flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">Admin Dashboard</h1>
-              <p className="text-slate-400 text-sm mt-1">{editingId ? "Edit existing bundle" : "Add a new bundle"}</p>
-            </div>
-            <button onClick={() => window.location.href = "/"} className="text-sm text-indigo-400 hover:text-indigo-300">
-              ← App
-            </button>
-          </header>
+    <div className="min-h-screen bg-gray-50 p-6 font-sans text-black">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-800">Data Bundle Manager</h1>
+          <button onClick={() => setIsAuthenticated(false)} className="text-sm text-red-600 hover:underline">
+            Logout
+          </button>
+        </div>
 
-          <div className={`bg-slate-800 border rounded-2xl p-6 shadow-lg transition-colors ${editingId ? 'border-yellow-500/50' : 'border-slate-700'}`}>
-            {editingId && (
-              <div className="mb-4 bg-yellow-900/30 text-yellow-400 text-xs p-2 rounded border border-yellow-500/30 flex justify-between items-center">
-                <span>You are editing an existing bundle.</span>
-                <button onClick={resetForm} className="underline font-bold hover:text-white">Cancel Edit</button>
-              </div>
-            )}
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {/* Form Section */}
+          <div className="lg:col-span-1">
+            <div className="rounded-lg bg-white p-6 shadow">
+              <h2 className="mb-4 text-lg font-semibold">{editingId ? "Edit Bundle" : "Add New Bundle"}</h2>
+              <form onSubmit={handleSubmit} className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase">Network</label>
-                  <select value={network} onChange={(e) => setNetwork(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 focus:outline-none focus:border-indigo-500">
+                  <label className="mb-1 block text-sm font-medium">Network</label>
+                  <select value={network} onChange={(e) => setNetwork(e.target.value)} className="w-full rounded border p-2">
                     <option value="MTN">MTN</option>
+                    <option value="Airtel">Airtel</option>
+                    <option value="Glo">Glo</option>
+                    <option value="9mobile">9mobile</option>
                     <option value="Telecel">Telecel</option>
-                    <option value="AirtelTigo">AirtelTigo</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase">Usage Type</label>
-                  <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 focus:outline-none focus:border-indigo-500">
-                    <option value="Daily">Daily</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="Monthly">Monthly</option>
-                    <option value="Night">Night</option>
-                    <option value="Social">Social</option>
-                  </select>
+                  <label className="mb-1 block text-sm font-medium">Bundle Name</label>
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full rounded border p-2" placeholder="e.g. 1GB Daily" />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase">Bundle Name</label>
-                <input required type="text" placeholder="e.g. Mega Bundle" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 focus:outline-none focus:border-indigo-500" />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase">Price (GH₵)</label>
-                  <input required type="number" step="0.01" placeholder="25.00" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase">Data (GB)</label>
-                  <input required type="number" step="0.1" placeholder="10" value={dataGb} onChange={(e) => setDataGb(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase">Days</label>
-                  <input required type="number" placeholder="7" value={days} onChange={(e) => setDays(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 focus:outline-none focus:border-indigo-500" />
-                </div>
-              </div>
-
-              <button type="submit" disabled={status === "loading"} className={`w-full text-white font-bold py-3 rounded-lg transition-colors mt-2 ${editingId ? 'bg-yellow-600 hover:bg-yellow-500' : 'bg-green-600 hover:bg-green-500'}`}>
-                {status === "loading" ? "Saving..." : editingId ? "Update Bundle" : "Add Bundle to Database"}
-              </button>
-
-              {message && (
-                <div className={`p-3 rounded-lg text-sm font-medium mt-4 ${status === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-                  {message}
-                </div>
-              )}
-            </form>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: BUNDLE LIST */}
-        <div>
-          <header className="mb-6 mt-12 md:mt-0">
-            <h2 className="text-xl font-bold text-white">Existing Bundles</h2>
-            <p className="text-slate-400 text-sm">Total: {bundles.length}</p>
-          </header>
-
-          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
-            {bundles.map((b) => (
-              <div key={b.id} className={`bg-slate-800 border p-3 rounded-xl flex justify-between items-center shadow-sm ${editingId === b.id ? 'border-yellow-500 ring-1 ring-yellow-500/50' : 'border-slate-700'}`}>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase">{b.network}</span>
-                    <span className="text-[10px] text-slate-500 bg-slate-900 px-1.5 rounded">{b.type}</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Price (GH₵)</label>
+                    <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required className="w-full rounded border p-2" />
                   </div>
-                  <h4 className="font-medium text-sm text-slate-200">{b.name}</h4>
-                  <p className="text-xs text-slate-500">{b.dataGb}GB · {b.days} days</p>
-                </div>
-                <div className="text-right flex items-center gap-3">
-                  <p className="font-bold text-white">GH₵ {b.price}</p>
-                  <div className="flex gap-1">
-                    <button onClick={() => handleEditClick(b)} className="bg-slate-700 hover:bg-slate-600 text-white p-1.5 rounded" title="Edit">
-                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    </button>
-                    <button onClick={() => handleDelete(b.id)} className="bg-red-900/50 hover:bg-red-600 text-red-200 hover:text-white p-1.5 rounded transition-colors" title="Delete">
-                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Size (GB)</label>
+                    <input type="number" value={dataGb} onChange={(e) => setDataGb(e.target.value)} required className="w-full rounded border p-2" />
                   </div>
                 </div>
-              </div>
-            ))}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Validity (Days)</label>
+                    <input type="number" value={days} onChange={(e) => setDays(e.target.value)} required className="w-full rounded border p-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Type</label>
+                    <select value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded border p-2">
+                      <option value="Daily">Daily</option>
+                      <option value="Weekly">Weekly</option>
+                      <option value="Monthly">Monthly</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium">USSD Code</label>
+                  <input type="text" value={ussdCode} onChange={(e) => setUssdCode(e.target.value)} required className="w-full rounded border p-2" placeholder="*138#" />
+                </div>
+
+                <button type="submit" disabled={status === "loading"} className="w-full rounded bg-blue-600 p-2 text-white hover:bg-blue-700 disabled:opacity-50">
+                  {status === "loading" ? "Saving..." : editingId ? "Update Bundle" : "Add Bundle"}
+                </button>
+
+                {editingId && (
+                  <button type="button" onClick={resetForm} className="w-full rounded bg-gray-200 p-2 text-gray-800 hover:bg-gray-300">
+                    Cancel Edit
+                  </button>
+                )}
+                
+                {message && (
+                  <p className={`mt-2 text-sm ${status === "error" ? "text-red-600" : "text-green-600"}`}>{message}</p>
+                )}
+              </form>
+            </div>
+          </div>
+
+          {/* List Section */}
+          <div className="lg:col-span-2">
+            <div className="overflow-hidden rounded-lg bg-white shadow">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Network</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Price</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Details</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {bundles.map((bundle) => (
+                    <tr key={bundle.id}>
+                      <td className="px-4 py-3 text-sm font-medium">{bundle.network}</td>
+                      <td className="px-4 py-3 text-sm">{bundle.name}</td>
+                      <td className="px-4 py-3 text-sm">GH₵{bundle.price}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {bundle.dataGb}GB • {bundle.days} Days • {bundle.type}
+                        <br />
+                        <span className="text-xs text-gray-400">{bundle.ussd_code}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm">
+                        <button onClick={() => handleEditClick(bundle)} className="mr-2 text-blue-600 hover:underline">Edit</button>
+                        <button onClick={() => handleDelete(bundle.id)} className="text-red-600 hover:underline">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                  {bundles.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500">No bundles found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-
       </div>
-    </main>
+    </div>
   );
 }
