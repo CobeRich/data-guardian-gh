@@ -12,27 +12,27 @@ type Bundle = {
   dataGb: number;
   days: number;
   type: string;
-  data: string; // Display string (e.g., "10GB")
-  validity: string; // Display string (e.g., "7 days")
+  data: string;
+  validity: string;
 };
 
 const networks = ['All', 'MTN', 'Telecel', 'AirtelTigo'];
 const categories = ['All', 'Daily', 'Weekly', 'Monthly', 'Night', 'Social'];
 
 export default function Home() {
-  // Supabase Data State
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter & UI State
   const [myNetworks, setMyNetworks] = useState<string[]>([]);
   const [selectedNetwork, setSelectedNetwork] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  // Data Diet Calculator State
+  // Calculator State
   const [calcGb, setCalcGb] = useState('');
   const [calcDays, setCalcDays] = useState('');
   const [recommendation, setRecommendation] = useState<Bundle | null | undefined>(undefined);
+  const [adviceText, setAdviceText] = useState("");
+  const [isPerfectMatch, setIsPerfectMatch] = useState(false);
 
   // Report Form State
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -43,7 +43,6 @@ export default function Home() {
 
   // --- FETCH DATA FROM SUPABASE ---
   useEffect(() => {
-    // Create the Supabase client using environment variables directly
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
@@ -55,13 +54,11 @@ export default function Home() {
       if (error) {
         console.error("Error fetching bundles:", error);
       } else if (data) {
-        // Map the database fields to match our UI needs
         const formattedData = data.map((item) => ({
           ...item,
           price: Number(item.price), 
           dataGb: Number(item.dataGb), 
           days: Number(item.days),
-          // Generate display strings for the UI
           data: item.dataGb >= 1 ? `${item.dataGb}GB` : `${item.dataGb * 1000}MB`,
           validity: item.days === 1 ? '24 hours' : `${item.days} days`,
         }));
@@ -89,15 +86,57 @@ export default function Home() {
       alert("Please enter valid numbers for data and days.");
       return;
     }
-    const validOptions = bundles.filter(b => 
-      b.dataGb >= reqGb && b.days >= reqDays && (myNetworks.length === 0 || myNetworks.includes(b.network))
+
+    const userNetworks = myNetworks.length > 0 ? myNetworks : ['MTN', 'Telecel', 'AirtelTigo'];
+
+    // 1. Try to find a PERFECT match (meets both data and days)
+    const perfectOptions = bundles.filter(b => 
+      b.dataGb >= reqGb && b.days >= reqDays && userNetworks.includes(b.network)
     );
-    validOptions.sort((a, b) => a.price - b.price);
-    setRecommendation(validOptions.length > 0 ? validOptions[0] : null);
+    
+    if (perfectOptions.length > 0) {
+      perfectOptions.sort((a, b) => a.price - b.price);
+      const best = perfectOptions[0];
+      setRecommendation(best);
+      setIsPerfectMatch(true);
+      setAdviceText(`Perfect match! This bundle covers your ${reqGb}GB for ${reqDays} days requirement for the lowest price.`);
+      return;
+    }
+
+    // 2. If no perfect match, find the CLOSEST match (highest data, even if days are shorter)
+    const closestOptions = bundles.filter(b => 
+      b.dataGb >= reqGb && userNetworks.includes(b.network)
+    );
+
+    if (closestOptions.length > 0) {
+      // Find the one with the closest data amount (least extra data), then sort by price
+      closestOptions.sort((a, b) => a.dataGb - b.dataGb);
+      const best = closestOptions[0];
+      setRecommendation(best);
+      setIsPerfectMatch(false);
+      setAdviceText(`No single bundle matches your exact days requirement. However, the ${best.network} ${best.name} gives you ${best.data} which covers your data needs, even if you have to renew it sooner.`);
+      return;
+    }
+
+    // 3. If they need more data than ANY bundle, give them a combination advice
+    const maxDataBundle = [...bundles].filter(b => userNetworks.includes(b.network)).sort((a, b) => b.dataGb - a.dataGb)[0];
+    
+    if (maxDataBundle) {
+      const bundlesNeeded = Math.ceil(reqGb / maxDataBundle.dataGb);
+      const totalCost = bundlesNeeded * maxDataBundle.price;
+      
+      setRecommendation(null);
+      setIsPerfectMatch(false);
+      setAdviceText(`No single bundle is big enough for ${reqGb}GB. You would need to buy ${bundlesNeeded} of the ${maxDataBundle.network} ${maxDataBundle.name} (${maxDataBundle.data} each). Total cost: GH₵ ${totalCost.toFixed(2)}.`);
+    } else {
+      setRecommendation(null);
+      setIsPerfectMatch(false);
+      setAdviceText("No bundles available for your selected network(s).");
+    }
   };
 
   const handleWhatsAppSubmit = () => {
-    const myPhoneNumber = "4915217004753"; // ⚠️ REPLACE WITH YOUR NUMBER
+    const myPhoneNumber = "233243953395"; // ⚠️ REPLACE WITH YOUR NUMBER
     const message = `*New Bundle Report* 🚨\n\n*Network:* ${reportNetwork}\n*Bundle Name:* ${reportName}\n*Price:* GH₵ ${reportPrice}\n*Data Amount:* ${reportData}\n\n_Sent from Data Guardian GH_`;
     window.open(`https://wa.me/${myPhoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
     setIsReportOpen(false);
@@ -202,19 +241,31 @@ export default function Home() {
               {recommendation !== undefined && (
                 <div className="mt-4 pt-4 border-t border-indigo-500/30">
                   {recommendation ? (
+                    // SUCCESS: WE FOUND A BUNDLE (Perfect or Closest)
                     <div className="bg-indigo-500/20 border border-indigo-500/50 rounded-xl p-4">
-                      <p className="text-xs text-indigo-300 font-bold uppercase mb-1">🏆 Best Deal Found</p>
-                      <div className="flex justify-between items-center">
+                      <p className="text-xs text-indigo-300 font-bold uppercase mb-1">
+                        {isPerfectMatch ? '🏆 Perfect Deal Found' : '💡 Closest Match Found'}
+                      </p>
+                      <div className="flex justify-between items-center mb-3">
                         <div>
                           <h4 className="font-bold text-white">{recommendation.name}</h4>
                           <p className="text-sm text-indigo-200">{recommendation.data} · {recommendation.validity}</p>
                         </div>
                         <p className="text-xl font-bold text-white">GH₵ {recommendation.price.toFixed(2)}</p>
                       </div>
+                      <div className="bg-indigo-950/50 p-3 rounded-lg border border-indigo-500/30">
+                        <p className="text-xs text-indigo-200 leading-relaxed">
+                          <strong className="text-white">Why this?</strong> {adviceText}
+                        </p>
+                      </div>
                     </div>
                   ) : (
-                    <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4">
-                      <p className="text-sm text-red-300">No single bundle matches your needs. You might need to buy a combination of bundles.</p>
+                    // NO SINGLE BUNDLE FITS (Show combination advice)
+                    <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4">
+                      <p className="text-xs text-yellow-400 font-bold uppercase mb-2">💡 Bundle Combination Needed</p>
+                      <p className="text-sm text-yellow-100/90 leading-relaxed">
+                        {adviceText}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -267,7 +318,13 @@ export default function Home() {
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`text-xs font-bold uppercase tracking-wide ${isPrimaryNetwork ? 'text-indigo-400' : 'text-slate-400'}`}>{b.network}</span>
-                            {b.type === 'Night' && <span className="bg-purple-900/50 text-purple-300 text-[10px] px-2 py-0.5 rounded-full font-medium">🌙 Night</span>}
+                            
+                            {b.type === 'Night' && (
+                              <span className="bg-purple-900/50 text-purple-300 text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1" title="Only valid between 12 AM and 5 AM">
+                                🌙 Night (12AM-5AM)
+                              </span>
+                            )}
+                            
                             {b.type === 'Social' && <span className="bg-pink-900/50 text-pink-300 text-[10px] px-2 py-0.5 rounded-full font-medium">📱 Social</span>}
                           </div>
                           <h3 className="font-semibold text-slate-100">{b.name}</h3>
@@ -290,8 +347,18 @@ export default function Home() {
           </div>
         )}
 
+        {/* 3. DATA SAVER PRO TIP */}
+        <section className="mt-8 bg-yellow-900/20 border border-yellow-500/30 rounded-2xl p-5 shadow-lg">
+          <h3 className="text-sm font-bold text-yellow-400 mb-2 flex items-center gap-2">
+            💡 Pro Tip: Save Your Data
+          </h3>
+          <p className="text-xs text-yellow-100/80 leading-relaxed">
+            Stop WhatsApp from eating your main data. Go to <strong>Settings &gt; Storage and Data &gt; Media Auto-Download</strong> and turn it off for Mobile Data.
+          </p>
+        </section>
+
         {/* CROWDSOURCE LINK */}
-        <div className="mt-10 text-center">
+        <div className="mt-8 text-center">
           <button onClick={() => setIsReportOpen(true)} className="text-xs font-medium text-indigo-400 hover:text-indigo-300 underline underline-offset-4">
             Missing a bundle or price changed? Report it here
           </button>
