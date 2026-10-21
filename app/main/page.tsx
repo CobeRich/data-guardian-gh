@@ -173,7 +173,7 @@ export default function AdminPage() {
                   <label className="mb-1 block text-sm font-medium">Network</label>
                   <select value={network} onChange={(e) => setNetwork(e.target.value)} className="w-full rounded border p-2">
                     <option value="MTN">MTN</option>
-                    <option value="Airtel">Airtel</option>
+                    <option value="AirtelTigo">AirtelTigo</option>
                     <option value="Glo">Glo</option>
                     <option value="9mobile">9mobile</option>
                     <option value="Telecel">Telecel</option>
