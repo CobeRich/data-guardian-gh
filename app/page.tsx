@@ -63,7 +63,7 @@ export default function Home() {
             dataGb: Number(item.dataGb), 
             days: isNumber ? Number(item.days) : item.days, 
             data: item.dataGb >= 1 ? `${item.dataGb}GB` : `${item.dataGb * 1000}MB`,
-            validity: item.days === 1 || item.days === '1' 
+            validity: String(item.days) === '1' 
               ? '24 hours' 
               : isNumber 
                 ? `${item.days} days` 

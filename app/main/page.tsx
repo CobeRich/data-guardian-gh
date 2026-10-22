@@ -256,7 +256,7 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-gray-200">
                   {bundles.map((bundle) => {
                     const displayData = bundle.dataGb >= 1 ? `${bundle.dataGb}GB` : `${bundle.dataGb * 1000}MB`;
-                    const displayValidity = bundle.days === '1' || bundle.days === 1 
+                    const displayValidity = bundle.days === '1' 
                       ? '24 hours' 
                       : isNaN(Number(bundle.days)) 
                         ? bundle.days 
