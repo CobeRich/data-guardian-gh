@@ -3,16 +3,21 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-// Define the Bundle type based on our Supabase table
+// ✅ Moved outside the component to prevent multiple instances
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+);
+
 type Bundle = {
   id: number;
   network: string;
   name: string;
-  price: number;
-  dataGb: number;
-  days: number;
-  type: string;
-  ussd_code: string; // NEW: Added USSD code
+  price: number;     
+  dataGb: number;    
+  days: string | number; 
+  type: string;      
+  ussd_code: string;
   data: string;
   validity: string;
 };
@@ -42,27 +47,29 @@ export default function Home() {
   const [reportPrice, setReportPrice] = useState('');
   const [reportData, setReportData] = useState('');
 
-  // --- FETCH DATA FROM SUPABASE ---
   useEffect(() => {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-    );
-
     async function fetchBundles() {
       const { data, error } = await supabase.from("bundles").select("*");
       
       if (error) {
         console.error("Error fetching bundles:", error);
       } else if (data) {
-        const formattedData = data.map((item) => ({
-          ...item,
-          price: Number(item.price), 
-          dataGb: Number(item.dataGb), 
-          days: Number(item.days),
-          data: item.dataGb >= 1 ? `${item.dataGb}GB` : `${item.dataGb * 1000}MB`,
-          validity: item.days === 1 ? '24 hours' : `${item.days} days`,
-        }));
+        const formattedData = data.map((item) => {
+          const isNumber = !isNaN(Number(item.days));
+          
+          return {
+            ...item,
+            price: Number(item.price), 
+            dataGb: Number(item.dataGb), 
+            days: isNumber ? Number(item.days) : item.days, 
+            data: item.dataGb >= 1 ? `${item.dataGb}GB` : `${item.dataGb * 1000}MB`,
+            validity: item.days === 1 || item.days === '1' 
+              ? '24 hours' 
+              : isNumber 
+                ? `${item.days} days` 
+                : item.days, 
+          };
+        });
         setBundles(formattedData);
       }
       setLoading(false);
@@ -90,9 +97,14 @@ export default function Home() {
 
     const userNetworks = myNetworks.length > 0 ? myNetworks : ['MTN', 'Telecel', 'AirtelTigo'];
 
-    // 1. Try to find a PERFECT match
+    const meetsDaysRequirement = (bundleDays: string | number) => {
+      const numericDays = Number(bundleDays);
+      if (isNaN(numericDays)) return true; 
+      return numericDays >= reqDays;
+    };
+
     const perfectOptions = bundles.filter(b => 
-      b.dataGb >= reqGb && b.days >= reqDays && userNetworks.includes(b.network)
+      b.dataGb >= reqGb && meetsDaysRequirement(b.days) && userNetworks.includes(b.network)
     );
     
     if (perfectOptions.length > 0) {
@@ -104,7 +116,6 @@ export default function Home() {
       return;
     }
 
-    // 2. Find the CLOSEST match
     const closestOptions = bundles.filter(b => 
       b.dataGb >= reqGb && userNetworks.includes(b.network)
     );
@@ -118,7 +129,6 @@ export default function Home() {
       return;
     }
 
-    // 3. Combination Advice
     const maxDataBundle = [...bundles].filter(b => userNetworks.includes(b.network)).sort((a, b) => b.dataGb - a.dataGb)[0];
     
     if (maxDataBundle) {
@@ -136,7 +146,7 @@ export default function Home() {
   };
 
   const handleWhatsAppSubmit = () => {
-    const myPhoneNumber = "233243953395"; // ⚠️ REPLACE WITH YOUR NUMBER
+    const myPhoneNumber = "233000000000"; // ⚠️ REPLACE WITH YOUR NUMBER
     const message = `*New Bundle Report* 🚨\n\n*Network:* ${reportNetwork}\n*Bundle Name:* ${reportName}\n*Price:* GH₵ ${reportPrice}\n*Data Amount:* ${reportData}\n\n_Sent from Data Guardian GH_`;
     window.open(`https://wa.me/${myPhoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
     setIsReportOpen(false);
@@ -144,7 +154,7 @@ export default function Home() {
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const myEmail = "achiawkoby@gmail.com"; // ⚠️ REPLACE WITH YOUR EMAIL
+    const myEmail = "your-email@example.com"; // ⚠️ REPLACE WITH YOUR EMAIL
     const subject = `Bundle Report: ${reportNetwork} - ${reportName}`;
     const body = `Network: ${reportNetwork}\nBundle Name: ${reportName}\nPrice: GH₵ ${reportPrice}\nData Amount: ${reportData}\n\nSent from Data Guardian GH`;
     window.location.href = `mailto:${myEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -258,7 +268,6 @@ export default function Home() {
                         </p>
                       </div>
                       
-                      {/* BUY BUTTON IN CALCULATOR */}
                       <a 
                         href={`tel:${encodeURIComponent(recommendation.ussd_code || '*138#')}`}
                         className="w-full bg-green-600 hover:bg-green-500 text-white text-sm font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -341,7 +350,6 @@ export default function Home() {
                         <div className="text-right flex flex-row sm:flex-col justify-between w-full sm:w-auto items-center sm:items-end border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-700">
                           <p className="text-xl font-bold text-white mb-2 sm:mb-2">GH₵ {b.price.toFixed(2)}</p>
                           
-                          {/* BUY NOW BUTTON */}
                           <a 
                             href={`tel:${encodeURIComponent(b.ussd_code || (b.network === 'MTN' ? '*138#' : b.network === 'Telecel' ? '*700#' : '*111#'))}`}
                             className="bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-green-500 transition-colors flex items-center justify-center gap-1"
@@ -418,7 +426,6 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Action Buttons */}
               <div className="pt-2">
                 <button 
                   type="button" 

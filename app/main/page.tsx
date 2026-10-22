@@ -3,15 +3,21 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
+// ✅ Moved outside the component to prevent multiple instances
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+);
+
 type Bundle = {
   id: number;
   network: string;
   name: string;
   price: number;
   dataGb: number;
-  days: number;
+  days: string;
   type: string;
-  ussd_code: string; // NEW
+  ussd_code: string;
 };
 
 export default function AdminPage() {
@@ -30,15 +36,10 @@ export default function AdminPage() {
   const [dataGb, setDataGb] = useState("");
   const [days, setDays] = useState("");
   const [type, setType] = useState("Daily");
-  const [ussdCode, setUssdCode] = useState("*138#"); // NEW STATE
+  const [ussdCode, setUssdCode] = useState("*138#");
   
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-  );
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -63,7 +64,7 @@ export default function AdminPage() {
     setDataGb("");
     setDays("");
     setType("Daily");
-    setUssdCode("*138#"); // Reset USSD
+    setUssdCode("*138#");
     setStatus("idle");
     setMessage("");
   };
@@ -74,9 +75,9 @@ export default function AdminPage() {
     setName(bundle.name);
     setPrice(bundle.price.toString());
     setDataGb(bundle.dataGb.toString());
-    setDays(bundle.days.toString());
+    setDays(bundle.days);
     setType(bundle.type);
-    setUssdCode(bundle.ussd_code || "*138#"); // Load USSD
+    setUssdCode(bundle.ussd_code || "*138#");
     setStatus("idle");
     setMessage("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -100,11 +101,11 @@ export default function AdminPage() {
     const payload = {
       network,
       name,
-      price: parseFloat(price),
-      dataGb: parseFloat(dataGb),
-      days: parseInt(days),
-      type,
-      ussd_code: ussdCode, // Include in payload
+      price: parseFloat(price),       
+      dataGb: parseFloat(dataGb),     
+      days: days,                     
+      type,                           
+      ussd_code: ussdCode,
     };
 
     let error;
@@ -173,33 +174,33 @@ export default function AdminPage() {
                   <label className="mb-1 block text-sm font-medium">Network</label>
                   <select value={network} onChange={(e) => setNetwork(e.target.value)} className="w-full rounded border p-2">
                     <option value="MTN">MTN</option>
-                    <option value="AirtelTigo">AirtelTigo</option>
+                    <option value="Telecel">Telecel</option>
+                    <option value="AT">AT (AirtelTigo)</option>
                     <option value="Glo">Glo</option>
                     <option value="9mobile">9mobile</option>
-                    <option value="Telecel">Telecel</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="mb-1 block text-sm font-medium">Bundle Name</label>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full rounded border p-2" placeholder="e.g. 1GB Daily" />
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full rounded border p-2" placeholder="e.g. Daily Low, Boss Pro" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1 block text-sm font-medium">Price (GH₵)</label>
-                    <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required className="w-full rounded border p-2" />
+                    <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required className="w-full rounded border p-2" placeholder="e.g. 10.00" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium">Size (GB)</label>
-                    <input type="number" value={dataGb} onChange={(e) => setDataGb(e.target.value)} required className="w-full rounded border p-2" />
+                    <label className="mb-1 block text-sm font-medium">Data Size (GB)</label>
+                    <input type="number" step="0.001" value={dataGb} onChange={(e) => setDataGb(e.target.value)} required className="w-full rounded border p-2" placeholder="e.g. 0.5, 1, 2" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-sm font-medium">Validity (Days)</label>
-                    <input type="number" value={days} onChange={(e) => setDays(e.target.value)} required className="w-full rounded border p-2" />
+                    <label className="mb-1 block text-sm font-medium">Validity</label>
+                    <input type="text" value={days} onChange={(e) => setDays(e.target.value)} required className="w-full rounded border p-2" placeholder="e.g. 30, No Expiry" />
                   </div>
                   <div>
                     <label className="mb-1 block text-sm font-medium">Type</label>
@@ -207,13 +208,19 @@ export default function AdminPage() {
                       <option value="Daily">Daily</option>
                       <option value="Weekly">Weekly</option>
                       <option value="Monthly">Monthly</option>
+                      <option value="Combo">Combo</option>
+                      <option value="Off-Peak">Off-Peak</option>
+                      <option value="Custom">Custom</option>
+                      <option value="Standard">Standard</option>
+                      <option value="Bulk Data">Bulk Data</option>
+                      <option value="Night-Owl">Night-Owl</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
                   <label className="mb-1 block text-sm font-medium">USSD Code</label>
-                  <input type="text" value={ussdCode} onChange={(e) => setUssdCode(e.target.value)} required className="w-full rounded border p-2" placeholder="*138#" />
+                  <input type="text" value={ussdCode} onChange={(e) => setUssdCode(e.target.value)} required className="w-full rounded border p-2" placeholder="e.g. *138#" />
                 </div>
 
                 <button type="submit" disabled={status === "loading"} className="w-full rounded bg-blue-600 p-2 text-white hover:bg-blue-700 disabled:opacity-50">
@@ -247,22 +254,31 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {bundles.map((bundle) => (
-                    <tr key={bundle.id}>
-                      <td className="px-4 py-3 text-sm font-medium">{bundle.network}</td>
-                      <td className="px-4 py-3 text-sm">{bundle.name}</td>
-                      <td className="px-4 py-3 text-sm">GH₵{bundle.price}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {bundle.dataGb}GB • {bundle.days} Days • {bundle.type}
-                        <br />
-                        <span className="text-xs text-gray-400">{bundle.ussd_code}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm">
-                        <button onClick={() => handleEditClick(bundle)} className="mr-2 text-blue-600 hover:underline">Edit</button>
-                        <button onClick={() => handleDelete(bundle.id)} className="text-red-600 hover:underline">Delete</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {bundles.map((bundle) => {
+                    const displayData = bundle.dataGb >= 1 ? `${bundle.dataGb}GB` : `${bundle.dataGb * 1000}MB`;
+                    const displayValidity = bundle.days === '1' || bundle.days === 1 
+                      ? '24 hours' 
+                      : isNaN(Number(bundle.days)) 
+                        ? bundle.days 
+                        : `${bundle.days} days`;
+
+                    return (
+                      <tr key={bundle.id}>
+                        <td className="px-4 py-3 text-sm font-medium">{bundle.network}</td>
+                        <td className="px-4 py-3 text-sm">{bundle.name}</td>
+                        <td className="px-4 py-3 text-sm">GH₵{bundle.price}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500">
+                          {displayData} • {displayValidity} • {bundle.type}
+                          <br />
+                          <span className="text-xs text-gray-400">{bundle.ussd_code}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm">
+                          <button onClick={() => handleEditClick(bundle)} className="mr-2 text-blue-600 hover:underline">Edit</button>
+                          <button onClick={() => handleDelete(bundle.id)} className="text-red-600 hover:underline">Delete</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {bundles.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-gray-500">No bundles found.</td>
