@@ -146,7 +146,7 @@ export default function Home() {
   };
 
   const handleWhatsAppSubmit = () => {
-    const myPhoneNumber = "233000000000"; // ⚠️ REPLACE WITH YOUR NUMBER
+    const myPhoneNumber = "233243953395"; // ⚠️ REPLACE WITH YOUR NUMBER
     const message = `*New Bundle Report* 🚨\n\n*Network:* ${reportNetwork}\n*Bundle Name:* ${reportName}\n*Price:* GH₵ ${reportPrice}\n*Data Amount:* ${reportData}\n\n_Sent from Data Guardian GH_`;
     window.open(`https://wa.me/${myPhoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
     setIsReportOpen(false);
@@ -154,7 +154,7 @@ export default function Home() {
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const myEmail = "your-email@example.com"; // ⚠️ REPLACE WITH YOUR EMAIL
+    const myEmail = "achiawkoby@gmail.com"; // ⚠️ REPLACE WITH YOUR EMAIL
     const subject = `Bundle Report: ${reportNetwork} - ${reportName}`;
     const body = `Network: ${reportNetwork}\nBundle Name: ${reportName}\nPrice: GH₵ ${reportPrice}\nData Amount: ${reportData}\n\nSent from Data Guardian GH`;
     window.location.href = `mailto:${myEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
