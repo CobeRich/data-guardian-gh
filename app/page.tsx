@@ -46,6 +46,7 @@ export default function Home() {
   const [reportName, setReportName] = useState('');
   const [reportPrice, setReportPrice] = useState('');
   const [reportData, setReportData] = useState('');
+  const [reportRemark, setReportRemark] = useState(''); // NEW: Remark state
 
   useEffect(() => {
     async function fetchBundles() {
@@ -63,6 +64,7 @@ export default function Home() {
             dataGb: Number(item.dataGb), 
             days: isNumber ? Number(item.days) : item.days, 
             data: item.dataGb >= 1 ? `${item.dataGb}GB` : `${item.dataGb * 1000}MB`,
+            // Using String() to safely compare without TypeScript errors
             validity: String(item.days) === '1' 
               ? '24 hours' 
               : isNumber 
@@ -146,23 +148,23 @@ export default function Home() {
   };
 
   const handleWhatsAppSubmit = () => {
-    const myPhoneNumber = "233243953395"; // ⚠️ REPLACE WITH YOUR NUMBER
-    const message = `*New Bundle Report* 🚨\n\n*Network:* ${reportNetwork}\n*Bundle Name:* ${reportName}\n*Price:* GH₵ ${reportPrice}\n*Data Amount:* ${reportData}\n\n_Sent from Data Guardian GH_`;
+    const myPhoneNumber = "233243953395"; // ✅ Updated WhatsApp Number
+    const message = `*New Bundle Report* 🚨\n\n*Network:* ${reportNetwork}\n*Bundle Name:* ${reportName}\n*Price:* GH₵ ${reportPrice}\n*Data Amount:* ${reportData}\n*Remark:* ${reportRemark || 'None'}\n\n_Sent from Data Guardian GH_`;
     window.open(`https://wa.me/${myPhoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
     setIsReportOpen(false);
   };
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const myEmail = "achiawkoby@gmail.com"; // ⚠️ REPLACE WITH YOUR EMAIL
+    const myEmail = "achiawkoby@gmail.com"; // ✅ Updated Email
     const subject = `Bundle Report: ${reportNetwork} - ${reportName}`;
-    const body = `Network: ${reportNetwork}\nBundle Name: ${reportName}\nPrice: GH₵ ${reportPrice}\nData Amount: ${reportData}\n\nSent from Data Guardian GH`;
+    const body = `Network: ${reportNetwork}\nBundle Name: ${reportName}\nPrice: GH₵ ${reportPrice}\nData Amount: ${reportData}\nRemark: ${reportRemark || 'None'}\n\nSent from Data Guardian GH`;
     window.location.href = `mailto:${myEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     setIsReportOpen(false);
   };
 
   const handleCopyReport = () => {
-    const message = `*New Bundle Report* 🚨\n\n*Network:* ${reportNetwork}\n*Bundle Name:* ${reportName}\n*Price:* GH₵ ${reportPrice}\n*Data Amount:* ${reportData}\n\n_Sent from Data Guardian GH_`;
+    const message = `*New Bundle Report* 🚨\n\n*Network:* ${reportNetwork}\n*Bundle Name:* ${reportName}\n*Price:* GH₵ ${reportPrice}\n*Data Amount:* ${reportData}\n*Remark:* ${reportRemark || 'None'}\n\n_Sent from Data Guardian GH_`;
     navigator.clipboard.writeText(message);
     alert("Report copied to clipboard! You can now paste it anywhere.");
   };
@@ -397,7 +399,7 @@ export default function Home() {
       {/* REPORT A PRICE MODAL */}
       {isReportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-800 border border-slate-700 w-full max-w-sm rounded-2xl p-6 shadow-2xl relative">
+          <div className="bg-slate-800 border border-slate-700 w-full max-w-sm rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onClick={() => setIsReportOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
             <h2 className="text-xl font-bold text-white mb-1">Report a Price</h2>
             <p className="text-xs text-slate-400 mb-5">Help keep Data Guardian accurate for everyone.</p>
@@ -424,6 +426,20 @@ export default function Home() {
                   <label className="text-[10px] font-semibold text-slate-400 uppercase">Data Amount</label>
                   <input required type="text" placeholder="e.g. 10GB" value={reportData} onChange={(e) => setReportData(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 text-sm focus:outline-none focus:border-indigo-500" />
                 </div>
+              </div>
+
+              {/* NEW: Remark Field */}
+              <div>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase">Remark (Optional - Max 250 chars)</label>
+                <textarea 
+                  maxLength={250}
+                  rows={3}
+                  placeholder="e.g. The price changed on *138# yesterday, it is now GH₵ 6.00" 
+                  value={reportRemark} 
+                  onChange={(e) => setReportRemark(e.target.value)} 
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white mt-1 text-sm focus:outline-none focus:border-indigo-500 resize-none" 
+                />
+                <p className="text-[10px] text-slate-500 text-right mt-1">{reportRemark.length}/250</p>
               </div>
               
               <div className="pt-2">
